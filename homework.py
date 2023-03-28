@@ -1,20 +1,16 @@
 import logging
 import os
-import time
 import sys
+import time
+from http import HTTPStatus
+from logging import StreamHandler
+from typing import Dict
 
 import requests
 import telegram
-from http import HTTPStatus
-from logging import StreamHandler
-
 from dotenv import load_dotenv
 
-from exceptions import WrongAPIResponse
-from exceptions import MessageNotSent, StatusNotExpected
-
-from typing import Dict
-
+from exceptions import MessageNotSent, StatusNotExpected, WrongAPIResponse
 
 load_dotenv()
 
@@ -69,8 +65,8 @@ def send_message(bot, message):
             chat_id=TELEGRAM_CHAT_ID,
             text=message
         )
-    except telegram.error.TelegramError:
-        message = 'Сообщение не удалось отправить'
+    except telegram.error.TelegramError as error:
+        message = f'Сообщение не удалось отправить: {error}'
         logger.error(message)
         raise MessageNotSent(message)
     else:
