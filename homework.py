@@ -41,9 +41,7 @@ logger.addHandler(handler)
 
 
 def check_tokens():
-    """
-    Checks that the required environment variables are set.
-    """
+    """Checks that the required environment variables are set."""
 
     if not PRACTICUM_TOKEN:
         message = ('Отсутствует обязательная переменная окружения: '
@@ -70,7 +68,6 @@ def send_message(bot, message):
         bot (telegram.Bot): The Telegram bot to use.
         message (str): The message to send.
     """
-
     try:
         bot.send_message(
             chat_id=TELEGRAM_CHAT_ID,
@@ -118,7 +115,6 @@ def check_response(response):
     Args:
         response (dict): JSON response received from Practicum API.
     """
-
     if not (isinstance(response, dict)
             and "homeworks" in response and "current_date" in response):
         message = f'Я.Практикум вернул неожиданную структуру json: {response}'
@@ -127,6 +123,15 @@ def check_response(response):
 
 
 def parse_status(homework):
+    """
+    Parses the status of a homework_statuses and returns a corresponding message.
+
+    Args:
+        homework (dict): A dictionary containing information about a homework submission.
+
+    Returns:
+        str: A message describing the status of the homework submission.
+    """
     homework_name = homework.get('homework_name')
     status = homework.get('status')
     if status in HOMEWORK_VERDICTS:
