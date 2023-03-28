@@ -42,7 +42,6 @@ logger.addHandler(handler)
 
 def check_tokens():
     """Checks that the required environment variables are set."""
-
     if not PRACTICUM_TOKEN:
         message = ('Отсутствует обязательная переменная окружения: '
                    'PRACTICUM_TOKEN. Программа принудительно остановлена. ')
@@ -80,8 +79,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(timestamp):
-    """Makes a request homework_statuses to an API Practicum
-    and returns the JSON response.
+    """Makes a request homework_statuses to an API Practicum.
 
     Args:
         timestamp (int): The UNIX timestamp to use in the API request.
@@ -109,8 +107,7 @@ def get_api_answer(timestamp):
 
 def check_response(response):
     """
-    Checks the structure of the response JSON
-    received from homework_statuses Practicum API.
+    Checks the structure of the response JSON homework_statuses.
 
     Args:
         response (dict): JSON response received from Practicum API.
@@ -124,10 +121,10 @@ def check_response(response):
 
 def parse_status(homework):
     """
-    Parses the status of a homework_statuses and returns a corresponding message.
+    Parses the status of a homework_statuses.
 
     Args:
-        homework (dict): A dictionary containing information about a homework submission.
+        homework (dict): A dictionary about a homework submission.
 
     Returns:
         str: A message describing the status of the homework submission.
