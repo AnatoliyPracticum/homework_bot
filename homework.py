@@ -5,6 +5,7 @@ import sys
 
 import requests
 import telegram
+from http import HTTPStatus
 from logging import StreamHandler
 
 from dotenv import load_dotenv
@@ -72,11 +73,12 @@ def send_message(bot, message):
             chat_id=TELEGRAM_CHAT_ID,
             text=message
         )
-        logger.debug(f'Отправлено сообщение: {message}')
-    except MessageNotSent:
+    except Exception:
         message = 'Сообщение не удалось отправить'
         logger.error(message)
         raise MessageNotSent(message)
+    else:
+        logger.debug(f'Отправлено сообщение: {message}')
 
 
 def get_api_answer(timestamp):
@@ -92,10 +94,13 @@ def get_api_answer(timestamp):
     payload = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=headers, params=payload)
-        response.raise_for_status()
+    except Exception:
+        message = f'Ошибка при запросе к Я.Практикуму: {response}'
+        raise requests.RequestException(message)
+    if response.status_code == HTTPStatus.OK:
         homework_statuses = response.json()
-    except (requests.HTTPError, ValueError) as e:
-        message = f'Ошибка при запросе к Я.Практикуму: {e}'
+    else:
+        message = f'Ошибка при запросе к Я.Практикуму: {response.status_code}'
         logger.error(message)
         raise requests.RequestException(message)
     return homework_statuses
@@ -108,14 +113,15 @@ def check_response(response):
     Args:
         response (dict): JSON response received from Practicum API.
     """
-    if not (isinstance(response, dict)
-            and "homeworks" in response
-            and "current_date" in response):
+    if not isinstance(response, dict):
+        message = f'Я.Практикум вернул неожиданную структуру json: {response}'
+        logger.error(message)
+        raise TypeError('Ошибка в типе ответа API')
+    if "homeworks" not in response or "current_date" not in response:
         message = f'Я.Практикум вернул неожиданную структуру json: {response}'
         logger.error(message)
         raise ResponseIncorrect(message)
-
-    if not isinstance(response.get("homeworks"), (dict, list)):
+    if not isinstance(response.get("homeworks"), list):
         message = f'Я.Практикум вернул неожиданный homeworks: {response}'
         logger.error(message)
         raise TypeError(message)
@@ -172,7 +178,8 @@ def main():
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
             send_message(bot, message)
-        time.sleep(RETRY_PERIOD)
+        finally:
+            time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
