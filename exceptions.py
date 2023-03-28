@@ -1,13 +1,4 @@
-class EnvVariableDoesNotExist(Exception):
-    """
-    Exception raised when a required environment variable is missing.
-    """
-
-    def __init__(self, message):
-        self.message = message
-
-
-class ResponseIncorrect(Exception):
+class WrongAPIResponse(Exception):
     """
     Exception raised when the response from the API is incorrect.
     """
