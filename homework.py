@@ -72,6 +72,7 @@ def send_message(bot, message):
             chat_id=TELEGRAM_CHAT_ID,
             text=message
         )
+        logger.debug(f'Отправлено сообщение: {message}')
     except MessageNotSent:
         message = 'Сообщение не удалось отправить'
         logger.error(message)
@@ -89,20 +90,15 @@ def get_api_answer(timestamp):
     """
     headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     payload = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=headers, params=payload)
-    if response.status_code == 200:
-        try:
-            homework_statuses = response.json()
-        except ValueError:
-            message = 'Ошибка декодирования JSON'
-            logger.error(message)
-            raise ResponseIncorrect(message)
-        else:
-            return homework_statuses
-    else:
-        message = 'Я.Практикум недоступен'
+    try:
+        response = requests.get(ENDPOINT, headers=headers, params=payload)
+        response.raise_for_status()
+        homework_statuses = response.json()
+    except (requests.HTTPError, ValueError) as e:
+        message = f'Ошибка при запросе к Я.Практикуму: {e}'
         logger.error(message)
-        raise ResponseIncorrect(message)
+        raise requests.RequestException(message)
+    return homework_statuses
 
 
 def check_response(response):
@@ -113,10 +109,16 @@ def check_response(response):
         response (dict): JSON response received from Practicum API.
     """
     if not (isinstance(response, dict)
-            and "homeworks" in response and "current_date" in response):
+            and "homeworks" in response
+            and "current_date" in response):
         message = f'Я.Практикум вернул неожиданную структуру json: {response}'
         logger.error(message)
         raise ResponseIncorrect(message)
+
+    if not isinstance(response.get("homeworks"), (dict, list)):
+        message = f'Я.Практикум вернул неожиданный homeworks: {response}'
+        logger.error(message)
+        raise TypeError(message)
 
 
 def parse_status(homework):
@@ -129,8 +131,18 @@ def parse_status(homework):
     Returns:
         str: A message describing the status of the homework submission.
     """
-    homework_name = homework.get('homework_name')
-    status = homework.get('status')
+    if "homework_name" in homework:
+        homework_name = homework.get('homework_name')
+    else:
+        message = f'Я.Практикум вернул json без homework_name: {homework}'
+        logger.error(message)
+        raise ResponseIncorrect(message)
+    if "status" in homework:
+        status = homework.get('status')
+    else:
+        message = f'Я.Практикум вернул json без status: {homework}'
+        logger.error(message)
+        raise ResponseIncorrect(message)
     if status in HOMEWORK_VERDICTS:
         verdict = HOMEWORK_VERDICTS[status]
         return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -154,10 +166,8 @@ def main():
                 last_homework = homework_statuses["homeworks"][0]
                 message = parse_status(last_homework)
                 send_message(bot, message)
-                logger.debug(f'Отправлено сообщение: {message}')
             else:
                 logger.debug('Сообщений не найдено')
-
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
